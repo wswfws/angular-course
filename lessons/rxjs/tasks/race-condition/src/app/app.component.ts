@@ -1,13 +1,8 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  OnInit,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { take } from 'rxjs';
+import { shareReplay, take } from 'rxjs';
 import { TopicModalComponent } from './topic-dialog.component';
-import { TopicService, TopicType } from './topic.service';
+import { TopicService } from './topic.service';
 
 @Component({
   selector: 'app-root',
@@ -18,8 +13,9 @@ import { TopicService, TopicType } from './topic.service';
           <span class="badge">Задача 1 · Race Condition</span>
           <h1>Выбор тем подписки</h1>
           <p class="subtitle">
-            Справочник тем загружается с сервера <strong>1000 мс</strong>.
-            Если нажать кнопку сразу после открытия страницы, диалог откроется
+            Справочник тем загружается с сервера
+            <strong>1000 мс</strong>
+            . Если нажать кнопку сразу после открытия страницы, диалог откроется
             раньше, чем придут данные.
           </p>
         </header>
@@ -31,7 +27,11 @@ import { TopicService, TopicType } from './topic.service';
               class="metric-value"
               [class.status-loading]="topicService.isLoading()"
               [class.status-ready]="!topicService.isLoading()">
-              {{ topicService.isLoading() ? 'Загрузка (1000 мс)...' : 'Ожидание / Готово' }}
+              {{
+                topicService.isLoading()
+                  ? 'Загрузка (1000 мс)...'
+                  : 'Ожидание / Готово'
+              }}
             </span>
           </div>
 
@@ -53,9 +53,10 @@ import { TopicService, TopicType } from './topic.service';
         </div>
 
         <footer class="hint-box">
-          <strong>Как проверить баг:</strong> обновите страницу (F5) и в первую
-          же секунду нажмите <code>Open Topic</code> — список внутри модального
-          окна окажется пустым.
+          <strong>Как проверить баг:</strong>
+          обновите страницу (F5) и в первую же секунду нажмите
+          <code>Open Topic</code>
+          — список внутри модального окна окажется пустым.
         </footer>
       </section>
     </main>
@@ -77,6 +78,7 @@ import { TopicService, TopicType } from './topic.service';
           Roboto,
           sans-serif;
       }
+
       .card {
         width: 100%;
         max-width: 520px;
@@ -86,6 +88,7 @@ import { TopicService, TopicType } from './topic.service';
         padding: 28px;
         box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.06);
       }
+
       .badge {
         display: inline-block;
         padding: 4px 10px;
@@ -96,23 +99,27 @@ import { TopicService, TopicType } from './topic.service';
         font-weight: 600;
         margin-bottom: 12px;
       }
+
       h1 {
         margin: 0 0 8px;
         font-size: 22px;
         color: #0f172a;
       }
+
       .subtitle {
         margin: 0;
         color: #475569;
         font-size: 14px;
         line-height: 1.5;
       }
+
       .telemetry {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
         margin: 20px 0;
       }
+
       .metric {
         padding: 12px 14px;
         border-radius: 12px;
@@ -121,27 +128,34 @@ import { TopicService, TopicType } from './topic.service';
         flex-direction: column;
         gap: 4px;
       }
+
       .metric-label {
         font-size: 12px;
         color: #64748b;
       }
+
       .metric-value {
         font-size: 15px;
         font-weight: 700;
         color: #0f172a;
       }
+
       .status-loading {
         color: #d97706;
       }
+
       .status-ready {
         color: #059669;
       }
+
       .status-warn {
         color: #dc2626;
       }
+
       .actions {
         margin: 20px 0;
       }
+
       .primary-btn {
         width: 100%;
         padding: 12px 20px;
@@ -154,9 +168,11 @@ import { TopicService, TopicType } from './topic.service';
         cursor: pointer;
         transition: background 0.15s ease;
       }
+
       .primary-btn:hover {
         background: #4338ca;
       }
+
       .hint-box {
         padding: 12px 14px;
         border-radius: 10px;
@@ -170,24 +186,20 @@ import { TopicService, TopicType } from './topic.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent implements OnInit {
+export class AppComponent {
   title = 'rxjs-race-condition';
   dialog = inject(MatDialog);
   topicService = inject(TopicService);
-  topics: TopicType[] = [];
-
-  ngOnInit(): void {
-    this.topicService
-      .fakeGetHttpTopic()
-      .pipe(take(1))
-      .subscribe((topics) => (this.topics = topics));
-  }
+  topics$ = this.topicService.fakeGetHttpTopic().pipe(
+    take(1),
+    shareReplay(1)
+  );
 
   openTopicModal() {
-    this.dialog.open(TopicModalComponent, {
-      data: {
-        topics: this.topics,
-      },
+    this.topics$.subscribe((topics) => {
+      this.dialog.open(TopicModalComponent, {
+        data: { topics },
+      });
     });
   }
 }
